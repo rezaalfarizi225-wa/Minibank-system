@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Sistem Monitoring Minibank</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        
+        /* Mirroring untuk feed kamera */
+/* Kamera tampil mirror seperti kamera HP */
+#video-feed,
+#video-setor{
+    transform:scaleX(-1);
+}
+
+/* HASIL FOTO JANGAN MIRROR */
+#img-final,
+#img-setor-final{
+    transform:none;
+}
+       
+        html,
+        body{
+            overflow-x:hidden;
+            scroll-behavior:smooth;
+        }
+
+        body{
+            font-family:'Plus Jakarta Sans',sans-serif;
+            background:#f1f5f9;
+            color:#306abc;
+        }
+
+        img,
+        video,
+        canvas{
+            max-width:100%;
+        }
+
+        button{
+            transition:.2s ease;
+        }
+
+        input,
+        select,
+        textarea{
+            outline:none;
+        }
+
+        .glass{
+            background:rgba(255,255,255,.75);
+            backdrop-filter:blur(18px);
+            -webkit-backdrop-filter:blur(18px);
+            border:1px solid rgba(255,255,255,.4);
+        }
+
+        .page{
+            display:none;
+            width:100%;
+            animation:fadePage .25s ease;
+        }
+
+        .page.active{
+            display:block;
+        }
+
+        @keyframes fadePage{
+            from{
+                opacity:0;
+                transform:translateY(10px);
+            }
+            to{
+                opacity:1;
+                transform:translateY(0);
+            }
+        }
+
+        .nav-item{
+            color:#94a3b8;
+        }
+
+        .nav-item.active{
+            color:#2563eb;
+            transform:translateY(-3px);
+        }
+
+        .card{
+            background:rgba(255,255,255,.92);
+            backdrop-filter:blur(10px);
+            border:1px solid #e2e8f0;
+            border-radius:28px;
+            box-shadow:0 1px 3px rgba(0,0,0,.04);
+        }
+
+        .input{
+            width:100%;
+            background:#f8fafc;
+            border:1px solid #e2e8f0;
+            border-radius:18px;
+            padding:14px 16px;
+            font-size:14px;
+        }
+
+        .btn-primary{
+            width:100%;
+            background:#2563eb;
+            color:white;
+            padding:16px;
+            border-radius:18px;
+            font-weight:800;
+            box-shadow:0 10px 20px rgba(37,99,235,.2);
+        }
+
+        .btn-primary:hover{
+            background:#1d4ed8;
+        }
+
+        .btn-dark{
+            width:100%;
+            background:#0f172a;
+            color:white;
+            padding:14px;
+            border-radius:16px;
+            font-weight:700;
+        }
+
+        .btn-success{
+            width:100%;
+            background:#10b981;
+            color:white;
+            padding:16px;
+            border-radius:18px;
+            font-weight:800;
+        }
+
+        .section-title{
+            font-size:12px;
+            font-weight:800;
+            letter-spacing:.08em;
+            text-transform:uppercase;
+            color:#64748b;
+        }
+
+        .custom-scroll::-webkit-scrollbar{
+            width:6px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb{
+            background:#cbd5e1;
+            border-radius:999px;
+        }
+    </style>
+</head>
+
+<body class="overflow-x-hidden">
+
+<!-- LOGIN -->
+<section id="login-section"
+    class="min-h-screen flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_#1e3a8a,_#064e3b)]">
+
+    <div class="glass w-full max-w-md rounded-[36px] p-8 shadow-2xl">
+
+        <img
+            src="image_dc64dc.png"
+            class="w-28 mx-auto mb-6 drop-shadow-xl"
+            alt="Logo Minibank"
+        >
+        
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-slate-800">
+                MINIBANK
+            </h1>
+
+            <p class="text-slate-500 mt-2 text-sm">
+                Sistem Monitoring & Presensi
+            </p>
+        </div>
+
+        <div class="space-y-4">
+
+            <input
+                type="text"
+                id="username"
+                placeholder="Username"
+                class="input"
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Password"
+                class="input"
+            >
+
+            <button
+                id="btn-login-action"
+                onclick="handleLogin()"
+                class="btn-primary active:scale-[0.98]"
+            >
+                MASUK
+            </button>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- MAIN -->
+<main id="main-content" class="hidden min-h-screen pb-32">
+
+    <!-- WRAPPER -->
+    <div class="max-w-7xl mx-auto">
+
+        <!-- HEADER -->
+        <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+
+            <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-800">
+                        DASHBOARD
+                    </h2>
+
+                    <p id="live-clock" class="text-blue-600 font-bold text-sm"></p>
+                </div>
+
+                <button
+                    onclick="logout()"
+                    class="text-red-500 font-bold text-sm"
+                >
+                    LOGOUT
+                </button>
+
+            </div>
+
+        </header>
+
+        <!-- HOME -->
+        <div id="page-home" class="page active p-4 md:p-6">
+
+            <div class="grid lg:grid-cols-2 gap-6">
+
+                <div class="card p-6">
+
+                    <h3 class="section-title mb-4">
+                        Kamera Presensi
+                    </h3>
+
+                    <video
+                        id="video-feed"
+                        autoplay
+                        playsinline
+                        class="w-full aspect-[3/4] bg-black rounded-2xl object-cover border border-slate-200 shadow-inner mb-4"
+                    ></video>
+
+                    <img
+                        id="img-final"
+                        class="hidden w-full aspect-[3/4] rounded-2xl object-cover border-4 border-emerald-400 mb-4"
+                    >
+
+                    <canvas id="canvas-capture" class="hidden"></canvas>
+
+                    <div class="flex gap-3">
+
+                        <button
+                            id="btn-ambil"
+                            onclick="tangkapFoto('absen')"
+                            class="btn-dark"
+                        >
+                            AMBIL FOTO
+                        </button>
+
+                        <button
+                            id="btn-ulang"
+                            onclick="resetKamera()"
+                            class="hidden w-full bg-amber-500 text-white rounded-2xl font-bold"
+                        >
+                            ULANG
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="card p-6">
+
+                    <div class="flex items-center justify-between mb-5">
+
+                        <div>
+                            <h3 class="font-extrabold text-slate-800">
+                                Shift Presensi
+                            </h3>
+
+                            <p class="text-slate-400 text-sm">
+                                Pilih shift yang aktif
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div
+                        id="shift-container"
+                        class="grid grid-cols-2 gap-4"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- SETOR -->
+        <div id="page-setor" class="page p-4 md:p-6">
+
+            <div class="grid lg:grid-cols-2 gap-6">
+
+                <div class="card p-6">
+
+                    <h3 class="font-extrabold text-slate-800 mb-5">
+                        Setor Bank
+                    </h3>
+
+                    <video
+                        id="video-setor"
+                        autoplay
+                        playsinline
+                        class="w-full aspect-[3/4] bg-black rounded-2xl object-cover border border-slate-200 shadow-inner mb-4"
+                    ></video>
+
+                    <img
+                        id="img-setor-final"
+                        class="hidden w-full aspect-[3/4] rounded-2xl object-cover border-4 border-indigo-400 mb-4"
+                    >
+
+                    <button
+                        onclick="tangkapFoto('setor')"
+                        class="btn-primary mb-4"
+                    >
+                        AMBIL FOTO BUKTI
+                    </button>
+
+                    <div class="space-y-3">
+
+                        <input
+                            type="number"
+                            id="setor_uang_feb"
+                            placeholder="Nominal FEB"
+                            class="input"
+                        >
+
+                        <input
+                            type="number"
+                            id="setor_uang_minibank"
+                            placeholder="Nominal Minibank"
+                            class="input"
+                        >
+
+                    </div>
+
+                    <div class="mt-5">
+
+                        <p class="section-title mb-3">
+                            Pilih Pendamping
+                        </p>
+
+                        <div
+                            id="list-anggota-setor"
+                            class="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto custom-scroll bg-slate-50 p-3 rounded-2xl border"
+                        ></div>
+
+                    </div>
+
+                    <button
+                        onclick="laporSetor()"
+                        class="btn-success mt-5 active:scale-[0.98]"
+                    >
+                        KIRIM LAPORAN
+                    </button>
+
+                </div>
+
+                <div class="card p-6">
+
+                    <div class="flex items-center justify-between mb-5">
+
+                        <div>
+                            <h3 class="font-extrabold text-slate-800">
+                                Riwayat Setoran
+                            </h3>
+
+                            <p class="text-slate-400 text-sm">
+                                Histori laporan setor
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <input
+                        type="date"
+                        id="filter_tgl_setor"
+                        onchange="cariRiwayatSetor()"
+                        class="input mb-4"
+                    >
+
+                    <div
+                        id="list-riwayat-setor"
+                        class="space-y-3"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- LAPORAN -->
+        <div id="page-laporan" class="page p-4 md:p-6">
+
+            <div class="grid lg:grid-cols-2 gap-6">
+
+                <div class="card p-6">
+
+                    <h3 class="font-extrabold text-slate-800 mb-5">
+                        Laporan Akhir Shift
+                    </h3>
+
+                    <select id="lap_shift" class="input mb-3">
+                        <option value="">-- Pilih Shift --</option>
+                        <option value="SHIFT 1">SHIFT 1</option>
+                        <option value="SHIFT 2">SHIFT 2</option>
+                        <option value="SHIFT 3">SHIFT 3</option>
+                        <option value="SHIFT 4">SHIFT 4</option>
+                    </select>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+
+                        <input type="number" id="uang_feb" placeholder="Uang FEB" class="input">
+                        <input type="number" id="admin_feb" placeholder="Admin FEB" class="input">
+
+                        <input type="number" id="uang_minibank" placeholder="Uang Minibank" class="input">
+                        <input type="number" id="admin_minibank" placeholder="Admin Minibank" class="input">
+
+                    </div>
+
+                    <textarea
+                        id="lap_keterangan"
+                        placeholder="Keterangan"
+                        class="input h-28 resize-none mb-4"
+                    ></textarea>
+
+                    <button
+                        onclick="simpanLaporan()"
+                        class="btn-primary"
+                    >
+                        SIMPAN LAPORAN
+                    </button>
+
+                </div>
+
+                <div class="card p-6">
+
+                    <div class="flex gap-2 mb-4">
+
+                        <input
+                            type="date"
+                            id="filter_tgl_laporan"
+                            class="input"
+                        >
+
+                        <select
+                            id="filter_shift_laporan"
+                            class="input"
+                        >
+                            <option value="">Semua Shift</option>
+                            <option value="SHIFT 1">Shift 1</option>
+                            <option value="SHIFT 2">Shift 2</option>
+                            <option value="SHIFT 3">Shift 3</option>
+                            <option value="SHIFT 4">Shift 4</option>
+                        </select>
+
+                    </div>
+
+                    <button
+                        onclick="cariLaporan()"
+                        class="btn-dark mb-5"
+                    >
+                        CARI LAPORAN
+                    </button>
+
+                    <div id="list-laporan-akhir"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- RANK -->
+        <div id="page-ranking" class="page p-4 md:p-6 pt-2 md:pt-4">
+
+            <div class="card p-6">
+
+                <div class="sticky top-[88px] z-20 bg-slate-100/80 backdrop-blur pb-4 flex gap-3 mb-8">
+
+                    <button
+                        onclick="updateLeaderboard('bulan')"
+                        class="flex-1 bg-blue-600 text-white rounded-2xl py-3 font-bold"
+                    >
+                        BULAN INI
+                    </button>
+
+                    <button
+                        onclick="updateLeaderboard('ytd')"
+                        class="flex-1 bg-slate-800 text-white rounded-2xl py-3 font-bold"
+                    >
+                        TAHUN INI
+                    </button>
+
+                    <button
+                        onclick="toggleCustomRank()"
+                        class="bg-slate-200 px-4 rounded-2xl"
+                    >
+                        📅
+                    </button>
+
+                </div>
+
+                <div
+                    id="custom-rank-filter"
+                    class="hidden grid md:grid-cols-3 gap-3 mb-5"
+                >
+
+                    <input type="date" id="rank_start" class="input">
+                    <input type="date" id="rank_end" class="input">
+
+                    <button
+                        onclick="updateLeaderboard('custom')"
+                        class="btn-primary"
+                    >
+                        FILTER
+                    </button>
+
+                </div>
+
+                <div
+                    id="leaderboard-list"
+                    class="space-y-3"
+                ></div>
+
+            </div>
+
+        </div>
+
+        <!-- ADMIN -->
+        <div id="page-admin" class="page p-4 md:p-6">
+
+            <div class="card p-6 max-w-3xl mx-auto">
+
+                <h3 class="text-2xl font-extrabold text-blue-600 mb-6">
+                    Pengaturan Shift
+                </h3>
+
+                <div class="space-y-5">
+
+                    <div>
+
+                        <label class="font-bold text-sm text-slate-600">
+                            Pilih Shift
+                        </label>
+
+                        <select
+                            id="admin_pilih_shift"
+                            class="input mt-2"
+                        >
+                            <option value="1">SHIFT 1</option>
+                            <option value="2">SHIFT 2</option>
+                            <option value="3">SHIFT 3</option>
+                            <option value="4">SHIFT 4</option>
+                        </select>
+
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+
+                        <div>
+
+                            <label class="font-bold text-sm text-slate-600">
+                                Jam Masuk
+                            </label>
+
+                            <div class="flex gap-2 mt-2">
+
+                                <input
+                                    type="number"
+                                    id="admin_jam"
+                                    placeholder="Jam"
+                                    class="input"
+                                >
+
+                                <input
+                                    type="number"
+                                    id="admin_menit"
+                                    placeholder="Menit"
+                                    class="input"
+                                >
+
+                            </div>
+
+                        </div>
+
+                        <div>
+
+                            <label class="font-bold text-sm text-slate-600">
+                                Jam Keluar
+                            </label>
+
+                            <div class="flex gap-2 mt-2">
+
+                                <input
+                                    type="number"
+                                    id="admin_jam_keluar"
+                                    placeholder="Jam"
+                                    class="input"
+                                >
+
+                                <input
+                                    type="number"
+                                    id="admin_menit_keluar"
+                                    placeholder="Menit"
+                                    class="input"
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <label class="font-bold text-sm text-slate-600">
+                            Berlaku Sampai
+                        </label>
+
+                        <input
+                            type="date"
+                            id="admin_berlaku_sampai"
+                            class="input mt-2"
+                        >
+
+                    </div>
+
+                    <button
+                        onclick="simpanPengaturanGlobal(this)"
+                        class="btn-primary active:scale-[0.98]"
+                    >
+                        SINKRONISASI JADWAL
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+<!-- NAVBAR -->
+<nav
+    id="navbar"
+    class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl bg-white/95 backdrop-blur-xl border border-slate-200 flex justify-around px-2 py-3 z-50 rounded-3xl shadow-2xl"
+>
+
+    <button
+        onclick="switchPage('page-home', this)"
+        class="nav-item active flex flex-col items-center gap-1"
+    >
+        <span class="text-xl">🏠</span>
+        <span class="text-[10px] font-bold">HOME</span>
+    </button>
+
+    <button
+        onclick="switchPage('page-setor', this)"
+        class="nav-item flex flex-col items-center gap-1"
+    >
+        <span class="text-xl">💰</span>
+        <span class="text-[10px] font-bold">SETOR</span>
+    </button>
+
+    <button
+        onclick="switchPage('page-laporan', this)"
+        class="nav-item flex flex-col items-center gap-1"
+    >
+        <span class="text-xl">📝</span>
+        <span class="text-[10px] font-bold">LAPOR</span>
+    </button>
+
+    <button
+        onclick="switchPage('page-ranking', this)"
+        class="nav-item flex flex-col items-center gap-1"
+    >
+        <span class="text-xl">🏆</span>
+        <span class="text-[10px] font-bold">RANK</span>
+    </button>
+
+    <button
+        id="nav-admin"
+        onclick="switchPage('page-admin', this)"
+        class="hidden nav-item flex flex-col items-center gap-1"
+    >
+        <span class="text-xl">⚙️</span>
+        <span class="text-[10px] font-bold">ADMIN</span>
+    </button>
+
+</nav>
+
+<!-- MODAL -->
+<div
+    id="modal-riwayat"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] p-4 overflow-y-auto"
+>
+
+    <div class="bg-white rounded-[30px] max-w-xl mx-auto mt-10 p-6">
+
+        <div class="flex items-center justify-between mb-6">
+
+            <h3
+                id="modal-title"
+                class="text-xl font-extrabold text-slate-800"
+            >
+                RIWAYAT
+            </h3>
+
+            <button
+                onclick="tutupModal()"
+                class="text-red-500 font-bold"
+            >
+                TUTUP
+            </button>
+
+        </div>
+
+        <div
+            id="modal-content"
+            class="space-y-3"
+        ></div>
+
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

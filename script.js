@@ -471,8 +471,8 @@ async function updateShiftButtons() {
 
                 const btn = document.createElement('button');
                 btn.className = `p-4 rounded-2xl font-bold text-[10px] transition-all ${isAktif
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`;
 
                 btn.innerHTML = `SHIFT ${s.id}<br>${displayJam}`;
@@ -542,8 +542,8 @@ async function laporSetor() {
     try {
 
         console.log(
-    "Memulai proses laporan setor..."
-);
+            "Memulai proses laporan setor..."
+        );
 
 
         const fotoUrl =
@@ -1123,10 +1123,10 @@ async function hapusRiwayat(item, tabel) {
         if (tabel === 'setor_bank') {
             if (!item.is_pendamping) {
 
-    await hapusFotoStorage(
-        item.foto_diri
-    );
-} {
+                await hapusFotoStorage(
+                    item.foto_diri
+                );
+            } {
                 const { data: children } = await supabaseClient
                     .from("setor_bank")
                     .select("username, poin_didapat")
@@ -1139,44 +1139,44 @@ async function hapusRiwayat(item, tabel) {
                 }
                 await supabaseClient.from("setor_bank").delete().eq("parent_id", item.id);
             }
-           await kurangiPoinUser(
-    item.username,
-    item.poin_didapat
-);
+            await kurangiPoinUser(
+                item.username,
+                item.poin_didapat
+            );
 
-// hapus file storage
-await hapusFotoStorage(
-    item.foto_diri
-);
+            // hapus file storage
+            await hapusFotoStorage(
+                item.foto_diri
+            );
 
-// hapus database
-await supabaseClient
+            // hapus database
+            await supabaseClient
 
-    .from("setor_bank")
+                .from("setor_bank")
 
-    .delete()
+                .delete()
 
-    .eq("id", item.id);
+                .eq("id", item.id);
         }
         else {
             await kurangiPoinUser(
-    item.username,
-    item.poin_didapat
-);
+                item.username,
+                item.poin_didapat
+            );
 
-// hapus file storage
-await hapusFotoStorage(
-    item.foto_diri
-);
+            // hapus file storage
+            await hapusFotoStorage(
+                item.foto_diri
+            );
 
-// hapus row database
-await supabaseClient
+            // hapus row database
+            await supabaseClient
 
-    .from("presensi")
+                .from("presensi")
 
-    .delete()
+                .delete()
 
-    .eq("id", item.id);
+                .eq("id", item.id);
         }
 
         alert("Penghapusan berhasil.");

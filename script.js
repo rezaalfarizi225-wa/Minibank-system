@@ -41,6 +41,36 @@ async function handleLogin() {
     }
 }
 
+function togglePassword() {
+
+        const passwordInput =
+                    document.getElementById(
+                                    'password'
+                                );
+
+        const eyeIcon =
+                    document.getElementById(
+                                    'eyeIcon'
+                                );
+
+        // cek type sekarang
+        const isHidden =
+                    passwordInput.type ===
+                    'password';
+
+        // toggle type
+        passwordInput.type =
+                    isHidden
+                ? 'text'
+                        : 'password';
+
+        // toggle icon
+        eyeIcon.className =
+                    isHidden
+                ? 'fa-solid fa-eye-slash'
+                        : 'fa-solid fa-eye';
+}
+
 function tampilkanUI() {
     document.getElementById("login-section").style.display = "none";
     document.getElementById("main-content").style.display = "block";

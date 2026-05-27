@@ -395,11 +395,35 @@
                             AMBIL FOTO BUKTI
                         </button>
 
-                        <div class="space-y-3">
-
-                            <input type="number" id="setor_uang_feb" placeholder="Nominal FEB" class="input">
-
-                            <input type="number" id="setor_uang_minibank" placeholder="Nominal Minibank" class="input">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="flex flex-col gap-2">
+        <label for="setor_uang_feb" class="text-sm font-medium text-black-450">Setor FEB</label>
+        <div class="relative rounded-xl shadow-sm">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                </div>
+            <input
+                type="text"
+                id="setor_uang_feb"
+                inputmode="numeric"
+                class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+            />
+        </div>
+    </div>
+    
+    <div class="flex flex-col gap-2">
+        <label for="setor_uang_minibank" class="text-sm font-medium text-black-450">Setor Minibank</label>
+        <div class="relative rounded-xl shadow-sm">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                            </div>
+            <input
+                type="text"
+                id="setor_uang_minibank"
+                inputmode="numeric"
+                class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+            />
+        </div>
+    </div>
+</div>
 
                         </div>
 
@@ -420,10 +444,9 @@
                         </button>
 
                     </div>
-
-                    <div class="card p-6">
-
-                        <div class="flex items-center justify-between mb-5">
+          
+                    <div class="card p-6 mt-6">
+                   <div class="flex items-center justify-between mb-5">
 
                             <div>
                                 <h3 class="font-extrabold text-slate-800">
@@ -454,11 +477,11 @@
 
                     <div class="card p-6">
 
-                        <h3 class="font-extrabold text-slate-800 mb-5">
+                        <h3 class="font-extrabold text--800 mb-5">
                             Laporan Akhir Shift
                         </h3>
 
-                        <select id="lap_shift" class="input mb-3">
+                        <select id="lap_shift" class="input mb-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"">
                             <option value="">-- Pilih Shift --</option>
                             <option value="SHIFT 1">SHIFT 1</option>
                             <option value="SHIFT 2">SHIFT 2</option>
@@ -466,18 +489,44 @@
                             <option value="SHIFT 4">SHIFT 4</option>
                         </select>
 
-                        <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="grid grid-cols-2 gap-3 mb-3 ">
 
-                            <input type="number" id="uang_feb" placeholder="Uang FEB" class="input">
-                            <input type="number" id="admin_feb" placeholder="Admin FEB" class="input">
+    <input
+        type="text"
+        id="uang_feb"
+        placeholder="Uang FEB"
+        inputmode="numeric"
+        class="w-full pl-5 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
-                            <input type="number" id="uang_minibank" placeholder="Uang Minibank" class="input">
-                            <input type="number" id="admin_minibank" placeholder="Admin Minibank" class="input">
+    <input
+        type="text"
+        id="admin_feb"
+        placeholder="Admin FEB"
+        inputmode="numeric"
+        class="w-full pl-5 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
-                        </div>
+    <input
+        type="text"
+        id="uang_minibank"
+        placeholder="Uang Minibank"
+        inputmode="numeric"
+        class="w-full pl-5 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
+
+    <input
+        type="text"
+        id="admin_minibank"
+        placeholder="Admin Minibank"
+        inputmode="numeric"
+        class="w-full pl-5 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
+
+</div>
 
                         <textarea id="lap_keterangan" placeholder="Keterangan"
-                            class="input h-28 resize-none mb-4"></textarea>
+                            class="input h-28 resize-none mb-4 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10""></textarea>
 
                         <button onclick="simpanLaporan()" class="btn-success btn-interactive">
                             SIMPAN LAPORAN
@@ -617,7 +666,8 @@
                                 Pilih Shift
                             </label>
 
-                            <select id="admin_pilih_shift" class="input mt-2">
+                            <select id="admin_pilih_shift" class="input mt-2 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >">
                                 <option value="1">SHIFT 1</option>
                                 <option value="2">SHIFT 2</option>
                                 <option value="3">SHIFT 3</option>
@@ -636,9 +686,11 @@
 
                                 <div class="flex gap-2 mt-2">
 
-                                    <input type="number" id="admin_jam" placeholder="Jam" class="input">
+                                    <input type="number" id="admin_jam" placeholder="Jam" class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
-                                    <input type="number" id="admin_menit" placeholder="Menit" class="input">
+                                    <input type="number" id="admin_menit" placeholder="Menit" class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
                                 </div>
 
@@ -652,9 +704,11 @@
 
                                 <div class="flex gap-2 mt-2">
 
-                                    <input type="number" id="admin_jam_keluar" placeholder="Jam" class="input">
+                                    <input type="number" id="admin_jam_keluar" placeholder="Jam" class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
-                                    <input type="number" id="admin_menit_keluar" placeholder="Menit" class="input">
+                                    <input type="number" id="admin_menit_keluar" placeholder="Menit" class="w-full pl-11 pr-4 py-3 background: #94a3b8; text-black rounded-xl border border-slate-700/50 placeholder-slate-600 text-sm font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
+    >
 
                                 </div>
 

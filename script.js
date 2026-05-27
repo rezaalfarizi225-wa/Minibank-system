@@ -1,7 +1,3 @@
-const SUPABASE_URL = "https://bskmfqksqrenxcanzaul.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJza21mcWtzcXJlbnhjYW56YXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Mjk1MjMsImV4cCI6MjA5MzMwNTUyM30.a4F5Cb1iS60PPFXv5Otp9ZWR-jjV4-GdyIjRH4Kr75o"; // Ambil dari Settings > API
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let userLogin = JSON.parse(localStorage.getItem("user"));
 let fotoData = null, streamKamera = null;
 
@@ -43,34 +39,31 @@ async function handleLogin() {
 
 function togglePassword() {
 
-        const passwordInput =
-                    document.getElementById(
-                                    'password'
-                                );
+    const passwordInput =
+        document.getElementById(
+            'password'
+        );
 
-        const eyeIcon =
-                    document.getElementById(
-                                    'eyeIcon'
-                                );
+    const eyeIcon =
+        document.getElementById(
+            'eyeIcon'
+        );
 
-        // cek type sekarang
-        const isHidden =
-                    passwordInput.type ===
-                    'password';
+    // cek type sekarang
+    const isHidden =
+        passwordInput.type ===
+        'password';
 
-        // toggle type
-        passwordInput.type =
-                    isHidden
-                ? 'text'
-                        : 'password';
+    // toggle type
+    passwordInput.type =
+        isHidden ? 'text'
+            : 'password';
 
-        // toggle icon
-        eyeIcon.className =
-                    isHidden
-                ? 'fa-solid fa-eye-slash'
-                        : 'fa-solid fa-eye';
+    // toggle icon
+    eyeIcon.className =
+        isHidden ? 'fa-solid fa-eye-slash'
+            : 'fa-solid fa-eye';
 }
-
 function tampilkanUI() {
     document.getElementById("login-section").style.display = "none";
     document.getElementById("main-content").style.display = "block";
@@ -298,33 +291,44 @@ async function prosesAbsen(shiftId) {
         // TEPAT WAKTU / LEBIH AWAL
         if (selisih <= 0) {
 
-            poinDapat = 25;
+    poinDapat = 25;
 
-            statusAbsen =
-                "Tepat Waktu";
-        }
+    statusAbsen =
+        "Tepat Waktu 😘";
+}
 
-        // TELAT <= 15 MENIT
-        else if (
-            selisih > 0 &&
-            selisih <= 15
-        ) {
+// TELAT < 15 MENIT
+else if (
+    selisih > 0 &&
+    selisih < 15
+) {
 
-            poinDapat = 10;
+    poinDapat = 15;
 
-            statusAbsen =
-                "Terlambat < 15 Menit";
-        }
+    statusAbsen =
+        "Terlambat < 15 Menit 😢";
+}
 
-        // TELAT > 15 MENIT
-        else {
+// TELAT 15 - 30 MENIT
+else if (
+    selisih >= 15 &&
+    selisih < 30
+) {
 
-            poinDapat = 5;
+    poinDapat = 10;
 
-            statusAbsen =
-                "Terlambat > 15 Menit";
-        }
+    statusAbsen =
+        "Terlambat > 15 Menit 😠";
+}
 
+// TELAT > 30 MENIT
+else {
+
+    poinDapat = 5;
+
+    statusAbsen =
+        "Terlambat > 30 Menit 🤬";
+}
         // =========================
         // SIMPAN PRESENSI
         // =========================
@@ -524,8 +528,10 @@ async function updateShiftButtons() {
 updateShiftButtons();
 
 // --- FUNGSI SETOR BANK ---
+
 async function laporSetor() {
 
+    // ambil input
     const inputFeb =
         document.getElementById(
             'setor_uang_feb'
@@ -536,15 +542,27 @@ async function laporSetor() {
             'setor_uang_minibank'
         );
 
+    // ambil angka bersih
     const febVal =
         inputFeb
-            ? (inputFeb.value || 0)
+            ? Number(
+                inputFeb.value
+                    .replace(/\D/g, '')
+            ) || 0
             : 0;
 
     const miniVal =
         inputMini
-            ? (inputMini.value || 0)
+            ? Number(
+                inputMini.value
+                    .replace(/\D/g, '')
+            ) || 0
             : 0;
+
+    console.log(febVal);
+    console.log(miniVal);
+
+    // lanjut kode lainnya...
 
     // VALIDASI
     if (!fotoData) {
@@ -752,6 +770,7 @@ async function laporSetor() {
     }
 }
 
+
 async function simpanLaporan() {
     const shiftVal = document.getElementById('lap_shift').value;
     const ket = document.getElementById('lap_keterangan').value;
@@ -760,10 +779,37 @@ async function simpanLaporan() {
     const { error } = await supabaseClient.from("laporan_akhir").insert([{
         user_id: userLogin.id, username: userLogin.username,
         shift_dipilih: shiftVal,
-        uang_feb: document.getElementById('uang_feb').value || 0,
-        admin_feb: document.getElementById('admin_feb').value || 0,
-        uang_minibank: document.getElementById('uang_minibank').value || 0,
-        admin_minibank: document.getElementById('admin_minibank').value || 0,
+        uang_feb:
+            Number(
+                document
+                    .getElementById('uang_feb')
+                    .value
+                    .replace(/\D/g, '')
+            ) || 0,
+
+        admin_feb:
+            Number(
+                document
+                    .getElementById('admin_feb')
+                    .value
+                    .replace(/\D/g, '')
+            ) || 0,
+
+        uang_minibank:
+            Number(
+                document
+                    .getElementById('uang_minibank')
+                    .value
+                    .replace(/\D/g, '')
+            ) || 0,
+
+        admin_minibank:
+            Number(
+                document
+                    .getElementById('admin_minibank')
+                    .value
+                    .replace(/\D/g, '')
+            ) || 0,
         keterangan: ket, status_minus: ket.toLowerCase().includes("minus")
     }]);
     if (!error) { alert("Laporan Berhasil!"); cariLaporan(); }
@@ -788,7 +834,18 @@ async function cariLaporan() {
     if (error) return console.error(error);
 
     if (data && data.length > 0) {
-        listEl.innerHTML = data.map(i => `
+
+    listEl.innerHTML = data.map(i => {
+
+        const canDelete =
+        (
+            userLogin.role === 'admin'
+            ||
+            userLogin.username === i.username
+        );
+
+        return `
+
             <div class="p-4 bg-slate-50 rounded-2xl border text-[11px] relative mb-3 shadow-sm">
                 <div class="flex justify-between items-start mb-2">
                     <div>
@@ -798,6 +855,7 @@ async function cariLaporan() {
                     <span class="px-2 py-1 rounded-lg ${i.status_minus ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'} font-black">
                         ${i.shift_dipilih} ${i.status_minus ? '(MINUS)' : '(OK)'}
                     </span>
+                    
                 </div>
                 
                 <div class="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-slate-100 mb-2">
@@ -822,12 +880,43 @@ async function cariLaporan() {
                 <p class="text-slate-500 italic bg-slate-100 p-2 rounded-lg">
                     <span class="font-bold">Ket:</span> ${i.keterangan || 'Tidak ada keterangan'}
                 </p>
+                 <div class="flex justify-end mt-2">
+
+    ${canDelete ? `
+
+        <button
+            onclick='hapusLaporanAkhir(
+    ${JSON.stringify(i)}
+)'
+                )
+            "
+            class="
+                text-red-500
+                font-bold
+                hover:scale-110
+                transition-transform
+            "
+        >
+            🗑️ HAPUS
+        </button>
+
+    ` : ''}
+
+</div>
             </div>
-        `).join("");
+        `;
+}).join("");
     } else {
         listEl.innerHTML = "<p class='text-center text-slate-400 text-xs py-10'>Data tidak ditemukan</p>";
     }
 }
+
+const SUPABASE_URL = "https://bskmfqksqrenxcanzaul.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJza21mcWtzcXJlbnhjYW56YXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Mjk1MjMsImV4cCI6MjA5MzMwNTUyM30.a4F5Cb1iS60PPFXv5Otp9ZWR-jjV4-GdyIjRH4Kr75o"; // Ambil dari Settings > API
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let userLogin = JSON.parse(localStorage.getItem("user"));
+let fotoData = null, streamKamera = null;
 
 async function cariRiwayatSetor() {
     const tgl = document.getElementById('filter_tgl_setor').value;
@@ -1048,7 +1137,7 @@ async function ambilUserIdLaluRiwayat(username) {
                 detailInfo = `<p class="text-blue-600 font-bold text-[10px] uppercase">📍 Shift ${item.shift}</p>`;
             } else {
                 const label = item.is_pendamping ? "🤝 Pendamping Setor" : "💰 Setor Bank";
-                const nominal = item.is_pendamping ? "" : `: Rp ${(Number(item.uang_feb) + Number(item.uang_minibank)).toLocaleString('id-ID')}`;
+                const nominal = item.is_pendamping ? "" : `: FEB ${formatRupiah(item.uang_feb)} & MINIBANK ${formatRupiah(item.uang_minibank)}`;
                 detailInfo = `<p class="text-indigo-600 font-bold text-[10px] uppercase">${label}${nominal}</p>`;
             }
 
@@ -1214,7 +1303,7 @@ async function hapusRiwayat(item, tabel) {
     } catch (err) {
         alert("Gagal: " + err.message);
     }
-}
+    }
 
 async function loadListAnggota() {
     const { data } = await supabaseClient.from("users").select("username").order("username");
@@ -1377,6 +1466,157 @@ async function hapusFotoStorage(urlFoto) {
         console.error(
             "Error hapus foto:",
             err
+        );
+    }
+}
+
+function formatInputRupiah(input) {
+
+    // ambil angka saja
+    let angka =
+        input.value.replace(/\D/g, '');
+
+    // kosong
+    if (angka.length === 0) {
+
+        input.value = '';
+
+        return;
+    }
+
+    // ubah ke format indonesia
+    const formatted =
+        Number(angka)
+            .toLocaleString('id-ID');
+
+    input.value =
+        'Rp' + formatted;
+}
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        const inputFeb =
+            document.getElementById(
+                'setor_uang_feb'
+            );
+
+        const inputMini =
+            document.getElementById(
+                'setor_uang_minibank'
+            );
+
+        if (inputFeb) {
+
+            inputFeb.addEventListener(
+                'input',
+                function () {
+
+                    formatInputRupiah(this);
+                }
+            );
+        }
+
+        if (inputMini) {
+
+            inputMini.addEventListener(
+                'input',
+                function () {
+
+                    formatInputRupiah(this);
+                }
+            );
+        }
+    }
+);
+
+[
+    'uang_feb',
+    'admin_feb',
+    'uang_minibank',
+    'admin_minibank'
+]
+
+    .forEach(id => {
+
+        const input =
+            document.getElementById(id);
+
+        if (input) {
+
+            input.addEventListener(
+                'input',
+                function () {
+
+                    formatInputRupiah(this);
+                }
+            );
+        }
+    });
+
+function formatRupiah(angka) {
+
+    return new Intl.NumberFormat(
+        'id-ID',
+        {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }
+    ).format(angka || 0);
+}
+
+async function hapusLaporanAkhir(item) {
+
+    const canDelete =
+    (
+        userLogin.role === 'admin'
+        ||
+        userLogin.username === item.username
+    );
+
+    if (!canDelete) {
+
+        return alert(
+            "Anda tidak memiliki izin!"
+        );
+    }
+
+    if (
+        !confirm(
+            "Hapus laporan akhir shift ini?"
+        )
+    ) return;
+
+    try {
+
+        console.log(item.id);
+
+        const { error } =
+            await supabaseClient
+
+            .from("laporan_akhir")
+
+            .delete()
+
+            .eq("id", item.id);
+
+        if (error) throw error;
+
+        alert(
+            "Riwayat berhasil dihapus!"
+        );
+
+        cariLaporan();
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert(
+            "Gagal menghapus: "
+            + err.message
         );
     }
 }

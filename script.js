@@ -474,9 +474,6 @@ function zoomFoto(url) {
 
 // --- SHIFT LOGIC ---
 async function updateShiftButtons() {
-    setInterval(() => {
-    updateShiftButtons();
-}, 1000);
     const now = new Date();
     const jamSekarang = now.getHours();
     const menitSekarang = now.getMinutes();

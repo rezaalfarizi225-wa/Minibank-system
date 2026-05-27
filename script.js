@@ -1,3 +1,7 @@
+const SUPABASE_URL = "https://bskmfqksqrenxcanzaul.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJza21mcWtzcXJlbnhjYW56YXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Mjk1MjMsImV4cCI6MjA5MzMwNTUyM30.a4F5Cb1iS60PPFXv5Otp9ZWR-jjV4-GdyIjRH4Kr75o"; // Ambil dari Settings > API
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let userLogin = JSON.parse(localStorage.getItem("user"));
 let fotoData = null, streamKamera = null;
 
@@ -910,13 +914,6 @@ async function cariLaporan() {
         listEl.innerHTML = "<p class='text-center text-slate-400 text-xs py-10'>Data tidak ditemukan</p>";
     }
 }
-
-const SUPABASE_URL = "https://bskmfqksqrenxcanzaul.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJza21mcWtzcXJlbnhjYW56YXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Mjk1MjMsImV4cCI6MjA5MzMwNTUyM30.a4F5Cb1iS60PPFXv5Otp9ZWR-jjV4-GdyIjRH4Kr75o"; // Ambil dari Settings > API
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let userLogin = JSON.parse(localStorage.getItem("user"));
-let fotoData = null, streamKamera = null;
 
 async function cariRiwayatSetor() {
     const tgl = document.getElementById('filter_tgl_setor').value;

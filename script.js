@@ -473,64 +473,143 @@ function zoomFoto(url) {
 }
 
 // --- SHIFT LOGIC ---
-async function updateShiftButtons() {
-    const now = new Date();
-    const jamSekarang = now.getHours();
-    const menitSekarang = now.getMinutes();
-    const totalMenitSekarang = (jamSekarang * 60) + menitSekarang;
+let dataShiftGlobal = [];
 
-    const container = document.getElementById('shift-container');
-    const clockElement = document.getElementById('live-clock');
-
-    if (clockElement) clockElement.innerText = now.toLocaleTimeString('id-ID');
+// ambil data shift SEKALI SAJA
+async function loadShiftSettings() {
 
     try {
-        // Ambil jadwal terbaru dari database
-        const { data: jadwalDB, error } = await supabaseClient
-            .from('shift_settings')
-            .select('*')
-            .order('id', { ascending: true });
+
+        const { data, error } =
+            await supabaseClient
+                .from('shift_settings')
+                .select('*')
+                .order('id', { ascending: true });
 
         if (error) throw error;
 
-        if (container && jadwalDB) {
-            container.innerHTML = ""; // Bersihkan container sebelum render ulang
+        dataShiftGlobal = data || [];
 
-            jadwalDB.forEach(s => {
-                // Konversi jam mulai & selesai ke total menit
-                const mulaiMenit = (s.jam_masuk * 60) + s.menit_masuk - 15; // Aktif 15 menit sebelum
-                const selesaiMenit = (s.jam_keluar * 60) + s.menit_keluar;
+        renderShiftButtons();
 
-                // Cek apakah waktu sekarang berada di dalam rentang shift
-                const isAktif = (totalMenitSekarang >= mulaiMenit && totalMenitSekarang < selesaiMenit);
-
-                // Format jam untuk tampilan (contoh: 08:00)
-                const displayJam = s.jam_masuk.toString().padStart(2, '0') + ":" + s.menit_masuk.toString().padStart(2, '0');
-
-                const btn = document.createElement('button');
-                btn.className = `p-4 rounded-2xl font-bold text-[10px] transition-all ${isAktif
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    }`;
-
-                btn.innerHTML = `SHIFT ${s.id}<br>${displayJam}`;
-
-                // Jika aktif, bisa diklik. Jika tidak, munculkan peringatan.
-                btn.onclick = isAktif
-                    ? () => prosesAbsen(s.id)
-                    : () => alert(`Belum waktunya! Shift ${s.id} dimulai jam ${displayJam}`);
-
-                container.appendChild(btn);
-            });
-        }
     } catch (err) {
-        console.error("Gagal memuat tombol shift:", err);
+
+        console.error(
+            "Gagal load shift:",
+            err
+        );
     }
 }
 
-// Jalankan fungsi saat halaman dimuat
-updateShiftButtons();
+// render tombol shift dari data lokal
+function renderShiftButtons() {
 
+    const now = new Date();
+
+    const jamSekarang =
+        now.getHours();
+
+    const menitSekarang =
+        now.getMinutes();
+
+    const totalMenitSekarang =
+        (jamSekarang * 60) +
+        menitSekarang;
+
+    const container =
+        document.getElementById(
+            'shift-container'
+        );
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    dataShiftGlobal.forEach(s => {
+
+        const mulaiMenit =
+            (s.jam_masuk * 60) +
+            s.menit_masuk - 15;
+
+        const selesaiMenit =
+            (s.jam_keluar * 60) +
+            s.menit_keluar;
+
+        const isAktif =
+            totalMenitSekarang >= mulaiMenit &&
+            totalMenitSekarang < selesaiMenit;
+
+        const displayJam =
+            s.jam_masuk
+                .toString()
+                .padStart(2, '0')
+            +
+            ":" +
+            s.menit_masuk
+                .toString()
+                .padStart(2, '0');
+
+        const btn =
+            document.createElement('button');
+
+        btn.className =
+            `p-4 rounded-2xl font-bold text-[10px]
+            ${isAktif
+                ? 'bg-emerald-500 text-white'
+                : 'bg-slate-200 text-slate-400'
+            }`;
+
+        btn.innerHTML =
+            `SHIFT ${s.id}<br>${displayJam}`;
+
+        btn.onclick =
+            isAktif
+                ? () => prosesAbsen(s.id)
+                : () => alert(
+                    `Belum waktunya!`
+                );
+
+        container.appendChild(btn);
+    });
+}
+
+// realtime clock TANPA database
+function startLiveClock() {
+
+    setInterval(() => {
+
+        const now = new Date();
+
+        // update jam
+        const clock =
+            document.getElementById(
+                'live-clock'
+            );
+
+        if (clock) {
+
+            clock.innerText =
+                now.toLocaleTimeString(
+                    'id-ID',
+                    {
+                        timeZone:
+                            'Asia/Jakarta',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    }
+                );
+        }
+
+        // update status tombol shift
+        renderShiftButtons();
+
+    }, 1000);
+}
+
+// jalankan
+loadShiftSettings();
+startLiveClock();
 // --- FUNGSI SETOR BANK ---
 
 async function laporSetor() {

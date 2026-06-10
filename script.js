@@ -194,67 +194,64 @@ function tangkapFoto(tipe) {
         }
     }
 }
-// PASTIKAN NAMA FUNGSI PERSIS SEPERTI INI
 async function prosesAbsen(shiftId) {
-
     // =========================
     // VALIDASI FOTO
     // =========================
-
     if (!fotoData) {
         return alert("Ambil foto dulu!");
     }
 
-    try {
+    // LOCK TOMBOL AGAR TIDAK DOUBLE CLICK
+    const targetBtn = window.event?.target;
+    if (targetBtn && targetBtn.tagName === 'BUTTON') {
+        if (targetBtn.disabled) return; // Jika sudah diproses, abaikan klik berikutnya
+        targetBtn.disabled = true;
+        targetBtn.innerText = "MEMPROSES...";
+    }
 
+    try {
         // =========================
         // TANGGAL INDONESIA
         // =========================
-
         const now = new Date();
-
-        const tanggalIndonesia =
-            new Intl.DateTimeFormat('sv-SE', {
-                timeZone: 'Asia/Jakarta'
-            }).format(now);
+        const tanggalIndonesia = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: 'Asia/Jakarta'
+        }).format(now);
 
         // =========================
         // VALIDASI PRESENSI GANDA
         // =========================
-
-        const { data: existingPresensi, error: existingError } =
-            await supabaseClient
-                .from('presensi')
-                .select('id')
-                .eq('username', userLogin.username)
-                .eq('shift', shiftId)
-                .eq('tanggal', tanggalIndonesia)
-                .limit(1);
+        const { data: existingPresensi, error: existingError } = await supabaseClient
+            .from('presensi')
+            .select('id')
+            .eq('username', userLogin.username)
+            .eq('shift', shiftId)
+            .eq('tanggal', tanggalIndonesia)
+            .limit(1);
 
         if (existingError) {
             throw existingError;
         }
 
-        if (
-            existingPresensi &&
-            existingPresensi.length > 0
-        ) {
-
-            return alert(
-                `Kamu sudah melakukan presensi shift ${shiftId} hari ini`
-            );
+        if (existingPresensi && existingPresensi.length > 0) {
+            alert(`Kamu sudah melakukan presensi shift ${shiftId} hari ini`);
+            // Kembalikan tombol ke semula jika validasi gagal
+            if (targetBtn) {
+                targetBtn.disabled = false;
+                targetBtn.innerHTML = `SHIFT ${shiftId}<br>${shiftId === 1 ? '08:00' : shiftId === 2 ? '13:00' : '16:00'}`; // Menyesuaikan tampilan awal
+            }
+            return;
         }
 
         // =========================
         // AMBIL SETTING SHIFT
         // =========================
-
-        const { data: shiftSetting, error: errShift } =
-            await supabaseClient
-                .from('shift_settings')
-                .select('jam_masuk, menit_masuk')
-                .eq('id', shiftId)
-                .single();
+        const { data: shiftSetting, error: errShift } = await supabaseClient
+            .from('shift_settings')
+            .select('jam_masuk, menit_masuk')
+            .eq('id', shiftId)
+            .single();
 
         if (errShift) {
             throw errShift;
@@ -263,181 +260,89 @@ async function prosesAbsen(shiftId) {
         // =========================
         // HITUNG KETERLAMBATAN
         // =========================
-
         const sekarang = new Date();
-
-        const jamSekarang =
-            sekarang.getHours();
-
-        const menitSekarang =
-            sekarang.getMinutes();
-
-        const totalMenitAbsen =
-            (jamSekarang * 60) +
-            menitSekarang;
-
-        const totalMenitJadwal =
-            (shiftSetting.jam_masuk * 60) +
-            shiftSetting.menit_masuk;
-
-        const selisih =
-            totalMenitAbsen -
-            totalMenitJadwal;
+        const jamSekarang = sekarang.getHours();
+        const menitSekarang = sekarang.getMinutes();
+        const totalMenitAbsen = (jamSekarang * 60) + menitSekarang;
+        const totalMenitJadwal = (shiftSetting.jam_masuk * 60) + shiftSetting.menit_masuk;
+        const selisih = totalMenitAbsen - totalMenitJadwal;
 
         let poinDapat = 0;
-
         let statusAbsen = "";
 
-        // =========================
-        // SISTEM POINT BARU
-        // =========================
-
-        // TEPAT WAKTU / LEBIH AWAL
+        // SISTEM POINT
         if (selisih <= 0) {
+            poinDapat = 25;
+            statusAbsen = "Tepat Waktu 😘";
+        } else if (selisih > 0 && selisih < 15) {
+            poinDapat = 15;
+            statusAbsen = "Terlambat < 15 Menit 😢";
+        } else if (selisih >= 15 && selisih < 30) {
+            poinDapat = 10;
+            statusAbsen = "Terlambat > 15 Menit 😠";
+        } else {
+            poinDapat = 5;
+            statusAbsen = "Terlambat > 30 Menit 🤬";
+        }
 
-    poinDapat = 25;
-
-    statusAbsen =
-        "Tepat Waktu 😘";
-}
-
-// TELAT < 15 MENIT
-else if (
-    selisih > 0 &&
-    selisih < 15
-) {
-
-    poinDapat = 15;
-
-    statusAbsen =
-        "Terlambat < 15 Menit 😢";
-}
-
-// TELAT 15 - 30 MENIT
-else if (
-    selisih >= 15 &&
-    selisih < 30
-) {
-
-    poinDapat = 10;
-
-    statusAbsen =
-        "Terlambat > 15 Menit 😠";
-}
-
-// TELAT > 30 MENIT
-else {
-
-    poinDapat = 5;
-
-    statusAbsen =
-        "Terlambat > 30 Menit 🤬";
-}
         // =========================
-        // SIMPAN PRESENSI
+        // SIMPAN PRESENSI & UPLOAD FOTO
         // =========================
+        const fotoURL = await uploadFotoToStorage(fotoData, "absen");
 
-        const fotoURL =
-            await uploadFotoToStorage(
-                fotoData,
-                "absen"
-            );
-
-        const { error: errPresensi } =
-            await supabaseClient
-                .from('presensi')
-                .insert([{
-
-                    username:
-                        userLogin.username,
-
-                    shift:
-                        shiftId,
-
-                    foto_diri:
-                        fotoURL,
-
-                    waktu:
-                        sekarang.toISOString(),
-
-                    tanggal:
-                        tanggalIndonesia,
-
-                    poin_didapat:
-                        poinDapat,
-
-                    keterangan:
-                        statusAbsen
-
-                }]);
+        const { error: errPresensi } = await supabaseClient
+            .from('presensi')
+            .insert([{
+                username: userLogin.username,
+                shift: shiftId,
+                foto_diri: fotoURL,
+                waktu: sekarang.toISOString(),
+                tanggal: tanggalIndonesia,
+                poin_didapat: poinDapat,
+                keterangan: statusAbsen
+            }]);
 
         if (errPresensi) {
             throw errPresensi;
         }
 
         // =========================
-        // AMBIL SCORE USER
+        // UPDATE SCORE USER
         // =========================
-
-        const { data: userData, error: errUser } =
-            await supabaseClient
-                .from('users')
-                .select('score')
-                .eq(
-                    'username',
-                    userLogin.username
-                )
-                .single();
+        const { data: userData, error: errUser } = await supabaseClient
+            .from('users')
+            .select('score')
+            .eq('username', userLogin.username)
+            .single();
 
         if (errUser) {
             throw errUser;
         }
 
-        // =========================
-        // UPDATE SCORE
-        // =========================
+        const scoreLama = userData?.score || 0;
+        const scoreBaru = scoreLama + poinDapat;
 
-        const scoreLama =
-            userData?.score || 0;
-
-        const scoreBaru =
-            scoreLama + poinDapat;
-
-        const { error: errUpdate } =
-            await supabaseClient
-                .from('users')
-                .update({
-                    score: scoreBaru
-                })
-                .eq(
-                    'username',
-                    userLogin.username
-                );
+        const { error: errUpdate } = await supabaseClient
+            .from('users')
+            .update({ score: scoreBaru })
+            .eq('username', userLogin.username);
 
         if (errUpdate) {
             throw errUpdate;
         }
 
-        // =========================
-        // SUCCESS
-        // =========================
-
-        alert(
-            `Absen Berhasil!\n\n` +
-            `Status: ${statusAbsen}\n` +
-            `Point: +${poinDapat}`
-        );
-
+        alert(`Absen Berhasil!\n\nStatus: ${statusAbsen}\nPoint: +${poinDapat}`);
         location.reload();
 
     } catch (err) {
-
         console.error(err);
+        alert("Gagal memproses presensi:\n" + err.message);
 
-        alert(
-            "Gagal memproses presensi:\n" +
-            err.message
-        );
+        // KEMBALIKAN TOMBOL JIKA PROSES ERROR
+        if (targetBtn) {
+            targetBtn.disabled = false;
+            renderShiftButtons(); // Gambar ulang struktur tombol agar teks jamnya kembali normal
+        }
     }
 }
 async function aktifkanKamera() {
@@ -613,246 +518,121 @@ startLiveClock();
 // --- FUNGSI SETOR BANK ---
 
 async function laporSetor() {
+    // Ambil input
+    const inputFeb = document.getElementById('setor_uang_feb');
+    const inputMini = document.getElementById('setor_uang_minibank');
 
-    // ambil input
-    const inputFeb =
-        document.getElementById(
-            'setor_uang_feb'
-        );
+    // Ambil angka bersih
+    const febVal = inputFeb ? Number(inputFeb.value.replace(/\D/g, '')) || 0 : 0;
+    const miniVal = inputMini ? Number(inputMini.value.replace(/\D/g, '')) || 0 : 0;
 
-    const inputMini =
-        document.getElementById(
-            'setor_uang_minibank'
-        );
-
-    // ambil angka bersih
-    const febVal =
-        inputFeb
-            ? Number(
-                inputFeb.value
-                    .replace(/\D/g, '')
-            ) || 0
-            : 0;
-
-    const miniVal =
-        inputMini
-            ? Number(
-                inputMini.value
-                    .replace(/\D/g, '')
-            ) || 0
-            : 0;
-
-    console.log(febVal);
-    console.log(miniVal);
-
-    // lanjut kode lainnya...
-
-    // VALIDASI
+    // VALIDASI INPUT AWAL
     if (!fotoData) {
-
-        return alert(
-            "Ambil foto bukti setor terlebih dahulu!"
-        );
+        return alert("Ambil foto bukti setor terlebih dahulu!");
     }
 
     if (febVal == 0 && miniVal == 0) {
+        return alert("Masukkan nominal setoran!");
+    }
 
-        return alert(
-            "Masukkan nominal setoran!"
-        );
+    // LOCK TOMBOL LAPOR AGAR TIDAK DOUBLE CLICK
+    const targetBtn = window.event?.target;
+    let originalText = "KIRIM LAPORAN";
+    if (targetBtn && targetBtn.tagName === 'BUTTON') {
+        if (targetBtn.disabled) return;
+        originalText = targetBtn.innerText;
+        targetBtn.disabled = true;
+        targetBtn.innerText = "MEMPROSES...";
     }
 
     // Ambil pendamping
-    const pendampingTerpilih =
-        Array.from(
-            document.querySelectorAll(
-                'input[name="pendamping"]:checked'
-            )
-        ).map(el => el.value);
+    const pendampingTerpilih = Array.from(
+        document.querySelectorAll('input[name="pendamping"]:checked')
+    ).map(el => el.value);
 
     try {
+        console.log("Memulai proses laporan setor...");
 
-        console.log(
-            "Memulai proses laporan setor..."
-        );
-
-
-        const fotoUrl =
-            await uploadFotoToStorage(
-                fotoData,
-                "setor"
-            );
-
-        console.log(
-            "Foto berhasil diupload:",
-            fotoUrl
-        );
+        const fotoUrl = await uploadFotoToStorage(fotoData, "setor");
+        console.log("Foto berhasil diupload:", fotoUrl);
 
         // =========================
         // INSERT DATA UTAMA
         // =========================
-
-        const {
-            data: mainData,
-            error: mainError
-        } = await supabaseClient
-
+        const { data: mainData, error: mainError } = await supabaseClient
             .from("setor_bank")
-
             .insert([{
-
-                user_id:
-                    userLogin.id,
-
-                username:
-                    userLogin.username,
-
-                foto_diri:
-                    fotoUrl,
-
-                pendamping:
-                    pendampingTerpilih.join(", "),
-
-                uang_feb:
-                    Number(febVal),
-
-                uang_minibank:
-                    Number(miniVal),
-
-                poin_didapat:
-                    25,
-
-                is_pendamping:
-                    false
-
+                user_id: userLogin.id,
+                username: userLogin.username,
+                foto_diri: fotoUrl,
+                pendamping: pendampingTerpilih.join(", "),
+                uang_feb: Number(febVal),
+                uang_minibank: Number(miniVal),
+                poin_didapat: 25,
+                is_pendamping: false
             }])
-
             .select()
-
             .single();
 
         if (mainError) {
             throw mainError;
         }
 
-        // =========================
         // TAMBAH POIN USER UTAMA
-        // =========================
-
-        await tambahPoinUser(
-            userLogin.username,
-            25
-        );
+        await tambahPoinUser(userLogin.username, 25);
 
         // =========================
         // INSERT PENDAMPING
         // =========================
+        if (pendampingTerpilih.length > 0) {
+            const barisPendamping = pendampingTerpilih.map(nama => ({
+                username: nama,
+                foto_diri: fotoUrl,
+                pendamping: "Pendamping dari " + userLogin.username,
+                uang_feb: 0,
+                uang_minibank: 0,
+                poin_didapat: 25,
+                is_pendamping: true,
+                parent_id: mainData.id
+            }));
 
-        if (
-            pendampingTerpilih.length > 0
-        ) {
-
-            const barisPendamping =
-                pendampingTerpilih.map(
-                    nama => ({
-
-                        username:
-                            nama,
-
-                        foto_diri:
-                            fotoUrl,
-
-                        pendamping:
-                            "Pendamping dari " +
-                            userLogin.username,
-
-                        uang_feb:
-                            0,
-
-                        uang_minibank:
-                            0,
-
-                        poin_didapat:
-                            25,
-
-                        is_pendamping:
-                            true,
-
-                        parent_id:
-                            mainData.id
-
-                    })
-                );
-
-            const {
-                error: pendampingError
-            } = await supabaseClient
-
+            const { error: pendampingError } = await supabaseClient
                 .from("setor_bank")
-
-                .insert(
-                    barisPendamping
-                );
+                .insert(barisPendamping);
 
             if (pendampingError) {
                 throw pendampingError;
             }
 
-            // tambah poin pendamping
-            for (
-                const nama of
-                pendampingTerpilih
-            ) {
-
-                await tambahPoinUser(
-                    nama,
-                    25
-                );
+            // Tambah poin pendamping
+            for (const nama of pendampingTerpilih) {
+                await tambahPoinUser(nama, 25);
             }
         }
 
-        // =========================
-        // SUCCESS
-        // =========================
+        alert("Laporan berhasil!\n\nAnda dan pendamping mendapatkan +25 poin.");
 
-        alert(
-            "Laporan berhasil!\n\n" +
-            "Anda dan pendamping " +
-            "mendapatkan +25 poin."
-        );
-
-        // reset form
-        if (inputFeb) {
-            inputFeb.value = "";
-        }
-
-        if (inputMini) {
-            inputMini.value = "";
-        }
-
+        // Reset Form
+        if (inputFeb) inputFeb.value = "";
+        if (inputMini) inputMini.value = "";
         fotoData = null;
 
-        // refresh data
+        // Refresh Data & Tampilan
         cariRiwayatSetor();
-
-        updateLeaderboard(
-            'bulan'
-        );
+        updateLeaderboard('bulan');
+        location.reload(); // Membuka kembali kunci tombol secara alami
 
     } catch (err) {
+        console.error("Gagal Lapor Setor:", err);
+        alert("Terjadi kesalahan:\n" + err.message);
 
-        console.error(
-            "Gagal Lapor Setor:",
-            err
-        );
-
-        alert(
-            "Terjadi kesalahan:\n" +
-            err.message
-        );
+        // RE-OPEN LOCK JIKA SEANDAINYA KONEKSI SUPABASE GAGAL
+        if (targetBtn) {
+            targetBtn.disabled = false;
+            targetBtn.innerText = originalText;
+        }
     }
 }
-
 
 async function simpanLaporan() {
     const shiftVal = document.getElementById('lap_shift').value;
@@ -918,16 +698,16 @@ async function cariLaporan() {
 
     if (data && data.length > 0) {
 
-    listEl.innerHTML = data.map(i => {
+        listEl.innerHTML = data.map(i => {
 
-        const canDelete =
-        (
-            userLogin.role === 'admin'
-            ||
-            userLogin.username === i.username
-        );
+            const canDelete =
+                (
+                    userLogin.role === 'admin'
+                    ||
+                    userLogin.username === i.username
+                );
 
-        return `
+            return `
 
             <div class="p-4 bg-slate-50 rounded-2xl border text-[11px] relative mb-3 shadow-sm">
                 <div class="flex justify-between items-start mb-2">
@@ -935,9 +715,25 @@ async function cariLaporan() {
                         <p class="font-black text-blue-600 uppercase">${i.username}</p>
                         <p class="text-slate-400 text-[9px]">${new Date(i.created_at).toLocaleString('id-ID')}</p>
                     </div>
-                    <span class="px-2 py-1 rounded-lg ${i.status_minus ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'} font-black">
-                        ${i.shift_dipilih} ${i.status_minus ? '(MINUS)' : '(OK)'}
-                    </span>
+                   ${(() => {
+                    // 1. Tentukan teks status dan warnanya berdasarkan kondisi data
+                    let labelTeks = `${i.shift_dipilih} (OK)`;
+                    let labelWarna = "bg-emerald-100 text-emerald-600"; // Default: Hijau (OK)
+
+                    // Ambil keterangan (jika ada) untuk pengecekan kata "kurang" atau "lebih"
+                    const keteranganLaporan = (i.keterangan || "").toLowerCase();
+
+                    if (i.status_minus || keteranganLaporan.includes("minus") || keteranganLaporan.includes("kurang")) {
+                        labelTeks = `${i.shift_dipilih} (MINUS / KURANG)`;
+                        labelWarna = "bg-red-100 text-red-600"; // Merah
+                    } else if (keteranganLaporan.includes("lebih")) {
+                        labelTeks = `${i.shift_dipilih} (LEBIH)`;
+                        labelWarna = "bg-amber-100 text-amber-600"; // Kuning
+                    }
+
+                    // 2. Kembalikan susunan elemen HTML dengan class warna yang tepat
+                    return `<span class="px-2 py-1 rounded-lg ${labelWarna} font-black">${labelTeks}</span>`;
+                })()}
                     
                 </div>
                 
@@ -988,7 +784,7 @@ async function cariLaporan() {
 </div>
             </div>
         `;
-}).join("");
+        }).join("");
     } else {
         listEl.innerHTML = "<p class='text-center text-slate-400 text-xs py-10'>Data tidak ditemukan</p>";
     }
@@ -1316,61 +1112,46 @@ async function hapusRiwayat(item, tabel) {
 
     try {
         if (tabel === 'setor_bank') {
+            // Jika yang dihapus adalah data utama (bukan pendamping), hapus fotonya
             if (!item.is_pendamping) {
-
-                await hapusFotoStorage(
-                    item.foto_diri
-                );
-            } {
-                const { data: children } = await supabaseClient
-                    .from("setor_bank")
-                    .select("username, poin_didapat")
-                    .eq("parent_id", item.id);
-
-                if (children) {
-                    for (const child of children) {
-                        await kurangiPoinUser(child.username, child.poin_didapat);
-                    }
-                }
-                await supabaseClient.from("setor_bank").delete().eq("parent_id", item.id);
+                await hapusFotoStorage(item.foto_diri);
             }
-            await kurangiPoinUser(
-                item.username,
-                item.poin_didapat
-            );
 
-            // hapus file storage
-            await hapusFotoStorage(
-                item.foto_diri
-            );
-
-            // hapus database
-            await supabaseClient
-
+            // Cek dan kurangi poin anggota pendamping jika ada
+            const { data: children } = await supabaseClient
                 .from("setor_bank")
+                .select("username, poin_didapat")
+                .eq("parent_id", item.id);
 
+            if (children) {
+                for (const child of children) {
+                    await kurangiPoinUser(child.username, child.poin_didapat);
+                }
+            }
+
+            // Hapus data pendamping di database
+            await supabaseClient.from("setor_bank").delete().eq("parent_id", item.id);
+
+            // Kurangi poin user utama
+            await kurangiPoinUser(item.username, item.poin_didapat);
+
+            // Hapus row data utama di database
+            await supabaseClient
+                .from("setor_bank")
                 .delete()
-
                 .eq("id", item.id);
         }
-        else {
-            await kurangiPoinUser(
-                item.username,
-                item.poin_didapat
-            );
+        else if (tabel === 'presensi') {
+            // 1. Kurangi poin user dari presensi yang dihapus
+            await kurangiPoinUser(item.username, item.poin_didapat);
 
-            // hapus file storage
-            await hapusFotoStorage(
-                item.foto_diri
-            );
+            // 2. Hapus file foto presensi di storage
+            await hapusFotoStorage(item.foto_diri);
 
-            // hapus row database
+            // 3. Hapus row data presensi di database
             await supabaseClient
-
                 .from("presensi")
-
                 .delete()
-
                 .eq("id", item.id);
         }
 
@@ -1379,7 +1160,7 @@ async function hapusRiwayat(item, tabel) {
     } catch (err) {
         alert("Gagal: " + err.message);
     }
-    }
+}
 
 async function loadListAnggota() {
     const { data } = await supabaseClient.from("users").select("username").order("username");
@@ -1495,54 +1276,38 @@ async function uploadFotoToStorage(base64Data, folder = "presensi") {
 }
 
 async function hapusFotoStorage(urlFoto) {
-
     try {
+        if (!urlFoto || urlFoto === 'null') return;
 
-        if (!urlFoto) return;
+        // Berdasarkan kode Anda, nama bucket utama adalah 'presensi'
+        const bucketName = 'presensi';
 
-        // Ambil path setelah /presensi/
-        const parts =
-            urlFoto.split('/presensi/');
+        // Ambil path setelah nama bucket '/presensi/'
+        const parts = urlFoto.split('/' + bucketName + '/');
 
         if (parts.length < 2) {
-
-            console.warn(
-                "Path storage tidak valid"
-            );
-
+            console.warn("Path storage tidak valid atau URL rusak");
             return;
         }
 
+        // Ini akan menghasilkan string seperti 'absen/1777729523-abc.jpg' atau 'setor/1777729523-xyz.jpg'
         const filePath = parts[1];
 
-        console.log(
-            "Menghapus file:",
-            filePath
-        );
+        console.log("Menghapus file dari storage:", filePath);
 
-        const { error } =
-            await supabaseClient
-
-                .storage
-
-                .from('presensi')
-
-                .remove([filePath]);
+        const { error } = await supabaseClient
+            .storage
+            .from(bucketName)
+            .remove([filePath]);
 
         if (error) {
-
-            console.error(
-                "Gagal hapus storage:",
-                error
-            );
+            console.error("Gagal hapus file di storage:", error.message);
+        } else {
+            console.log("File di storage berhasil terhapus.");
         }
 
     } catch (err) {
-
-        console.error(
-            "Error hapus foto:",
-            err
-        );
+        console.error("Error pada fungsi hapusFotoStorage:", err);
     }
 }
 
@@ -1646,11 +1411,11 @@ function formatRupiah(angka) {
 async function hapusLaporanAkhir(item) {
 
     const canDelete =
-    (
-        userLogin.role === 'admin'
-        ||
-        userLogin.username === item.username
-    );
+        (
+            userLogin.role === 'admin'
+            ||
+            userLogin.username === item.username
+        );
 
     if (!canDelete) {
 
@@ -1672,11 +1437,11 @@ async function hapusLaporanAkhir(item) {
         const { error } =
             await supabaseClient
 
-            .from("laporan_akhir")
+                .from("laporan_akhir")
 
-            .delete()
+                .delete()
 
-            .eq("id", item.id);
+                .eq("id", item.id);
 
         if (error) throw error;
 
@@ -1696,3 +1461,4 @@ async function hapusLaporanAkhir(item) {
         );
     }
 }
+

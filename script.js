@@ -72,6 +72,15 @@ function tampilkanUI() {
     document.getElementById("login-section").style.display = "none";
     document.getElementById("main-content").style.display = "block";
     document.getElementById("navbar").style.display = "flex";
+    
+    // MENGUBAH MENJADI 'HALO, [NAMA USER]' DENGAN FORMAT HURUF BESAR DI AWAL (CAPITALIZE)
+    const titleEl = document.getElementById("dashboard-title");
+    if (titleEl && userLogin && userLogin.username) {
+        // Format nama: mengubah huruf pertama jadi kapital, sisanya huruf kecil
+        const namaFormatted = userLogin.username.charAt(0).toUpperCase() + userLogin.username.slice(1).toLowerCase();
+        titleEl.innerHTML = `Halo, <span class="font-extrabold text-indigo-950">${namaFormatted}</span>`;
+    }
+
     cekRoleAdmin(); aktifkanKamera(); updateLeaderboard('bulan'); cariLaporan(); loadListAnggota();
 }
 
@@ -80,7 +89,15 @@ function switchPage(p, b) {
     document.getElementById(p).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     b.classList.add('active');
-    aktifkanKamera();
+
+    if (p === 'page-home' || p === 'page-setor') {
+        aktifkanKamera();
+    } else {
+        if (streamKamera) {
+            streamKamera.getTracks().forEach(t => t.stop());
+            streamKamera = null;
+        }
+    }
 }
 
 function logout() { localStorage.clear(); location.reload(); }
@@ -132,7 +149,7 @@ function tangkapFoto(tipe) {
     ctx.restore();
 
     // SIMPAN FOTO GLOBAL
-    fotoData = canvas.toDataURL('image/jpeg', 0.8);
+    fotoData = canvas.toDataURL('image/jpeg', 0.6);
 
     console.log("Foto berhasil diambil");
 
@@ -679,11 +696,25 @@ async function simpanLaporan() {
 }
 
 async function cariLaporan() {
-    const tgl = document.getElementById('filter_tgl_laporan').value;
+    let tgl = document.getElementById('filter_tgl_laporan').value;
     const shift = document.getElementById('filter_shift_laporan').value;
+
+    // JIKA TANGGAL KOSONG (Saat pertama kali masuk web), SET KE HARI INI
+    if (!tgl) {
+        const now = new Date();
+        // Format ISO tanggal lokal Jakarta (YYYY-MM-DD)
+        tgl = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: 'Asia/Jakarta'
+        }).format(now);
+        
+        // Opsional: Isi input filter di UI dengan tanggal hari ini agar user tidak bingung
+        const inputTgl = document.getElementById('filter_tgl_laporan');
+        if (inputTgl) inputTgl.value = tgl;
+    }
 
     let query = supabaseClient.from("laporan_akhir").select("*");
 
+    // Saring data berdasarkan rentang waktu penuh pada tanggal tersebut (00:00:00 sampai 23:59:59)
     if (tgl) {
         query = query.gte("created_at", `${tgl}T00:00:00Z`).lte("created_at", `${tgl}T23:59:59Z`);
     }
@@ -697,18 +728,10 @@ async function cariLaporan() {
     if (error) return console.error(error);
 
     if (data && data.length > 0) {
-
         listEl.innerHTML = data.map(i => {
-
-            const canDelete =
-                (
-                    userLogin.role === 'admin'
-                    ||
-                    userLogin.username === i.username
-                );
+            const canDelete = (userLogin.role === 'admin' || userLogin.username === i.username);
 
             return `
-
             <div class="p-4 bg-slate-50 rounded-2xl border text-[11px] relative mb-3 shadow-sm">
                 <div class="flex justify-between items-start mb-2">
                     <div>
@@ -716,25 +739,21 @@ async function cariLaporan() {
                         <p class="text-slate-400 text-[9px]">${new Date(i.created_at).toLocaleString('id-ID')}</p>
                     </div>
                    ${(() => {
-                    // 1. Tentukan teks status dan warnanya berdasarkan kondisi data
-                    let labelTeks = `${i.shift_dipilih} (OK)`;
-                    let labelWarna = "bg-emerald-100 text-emerald-600"; // Default: Hijau (OK)
+                        let labelTeks = `${i.shift_dipilih} (OK)`;
+                        let labelWarna = "bg-emerald-100 text-emerald-600";
 
-                    // Ambil keterangan (jika ada) untuk pengecekan kata "kurang" atau "lebih"
-                    const keteranganLaporan = (i.keterangan || "").toLowerCase();
+                        const keteranganLaporan = (i.keterangan || "").toLowerCase();
 
-                    if (i.status_minus || keteranganLaporan.includes("minus") || keteranganLaporan.includes("kurang")) {
-                        labelTeks = `${i.shift_dipilih} (MINUS / KURANG)`;
-                        labelWarna = "bg-red-100 text-red-600"; // Merah
-                    } else if (keteranganLaporan.includes("lebih")) {
-                        labelTeks = `${i.shift_dipilih} (LEBIH)`;
-                        labelWarna = "bg-amber-100 text-amber-600"; // Kuning
-                    }
+                        if (i.status_minus || keteranganLaporan.includes("minus") || keteranganLaporan.includes("kurang")) {
+                            labelTeks = `${i.shift_dipilih} (MINUS / KURANG)`;
+                            labelWarna = "bg-red-100 text-red-600";
+                        } else if (keteranganLaporan.includes("lebih")) {
+                            labelTeks = `${i.shift_dipilih} (LEBIH)`;
+                            labelWarna = "bg-amber-100 text-amber-600";
+                        }
 
-                    // 2. Kembalikan susunan elemen HTML dengan class warna yang tepat
-                    return `<span class="px-2 py-1 rounded-lg ${labelWarna} font-black">${labelTeks}</span>`;
-                })()}
-                    
+                        return `<span class="px-2 py-1 rounded-lg ${labelWarna} font-black">${labelTeks}</span>`;
+                    })()}
                 </div>
                 
                 <div class="grid grid-cols-2 gap-2 bg-white p-3 rounded-xl border border-slate-100 mb-2">
@@ -759,34 +778,18 @@ async function cariLaporan() {
                 <p class="text-slate-500 italic bg-slate-100 p-2 rounded-lg">
                     <span class="font-bold">Ket:</span> ${i.keterangan || 'Tidak ada keterangan'}
                 </p>
-                 <div class="flex justify-end mt-2">
-
-    ${canDelete ? `
-
-        <button
-            onclick='hapusLaporanAkhir(
-    ${JSON.stringify(i)}
-)'
-                )
-            "
-            class="
-                text-red-500
-                font-bold
-                hover:scale-110
-                transition-transform
-            "
-        >
-            🗑️ HAPUS
-        </button>
-
-    ` : ''}
-
-</div>
+                <div class="flex justify-end mt-2">
+                    ${canDelete ? `
+                        <button onclick='hapusLaporanAkhir(${JSON.stringify(i)})' class="text-red-500 font-bold hover:scale-110 transition-transform">
+                            🗑️ HAPUS
+                        </button>
+                    ` : ''}
+                </div>
             </div>
-        `;
+            `;
         }).join("");
     } else {
-        listEl.innerHTML = "<p class='text-center text-slate-400 text-xs py-10'>Data tidak ditemukan</p>";
+        listEl.innerHTML = "<p class='text-center text-slate-400 text-xs py-10'>Tidak ada laporan akhir untuk hari ini</p>";
     }
 }
 
@@ -963,96 +966,461 @@ async function updateLeaderboard(tipe) {
 }
 
 async function ambilUserIdLaluRiwayat(username) {
-    const modal = document.getElementById("modal-riwayat");
-    const content = document.getElementById("modal-content");
-    const title = document.getElementById("modal-title");
 
-    title.innerText = `RIWAYAT: ${username}`;
-    content.innerHTML = "<p class='text-center text-xs text-slate-400 py-10'>Memuat riwayat...</p>";
-    modal.style.display = "block";
+    const modal =
+        document.getElementById(
+            "modal-riwayat"
+        );
 
-    try {
-        const { data: dataAbsen, error: errA } = await supabaseClient
-            .from("presensi")
-            .select("id, created_at, shift, foto_diri, poin_didapat")
-            .eq("username", username);
+    const content =
+        document.getElementById(
+            "modal-content"
+        );
 
-        if (errA) throw errA;
+    const title =
+        document.getElementById(
+            "modal-title"
+        );
 
-        const { data: dataSetor, error: errS } = await supabaseClient
-            .from("setor_bank")
-            .select("id, created_at, uang_feb, uang_minibank, foto_diri, poin_didapat, is_pendamping, parent_id")
-            .eq("username", username);
+    const LIMIT = 20;
 
-        if (errS) throw errS;
+    let offset = 0;
 
-        const semuaRiwayat = [
-            ...(dataAbsen || []).map(d => ({ ...d, tipe: 'SHIFT', target_table: 'presensi' })),
-            ...(dataSetor || []).map(d => ({ ...d, tipe: 'SETOR', target_table: 'setor_bank' }))
-        ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    let semuaRiwayat = [];
 
-        if (semuaRiwayat.length === 0) {
-            content.innerHTML = "<p class='text-center text-xs text-slate-400 py-10'>Belum ada aktivitas tercatat.</p>";
-            return;
-        }
+    let masihAdaData = true;
 
-        content.innerHTML = semuaRiwayat.map(item => {
-            const tgl = new Date(item.created_at).toLocaleString('id-ID', {
-                dateStyle: 'medium',
-                timeStyle: 'short'
-            });
+    title.innerText =
+        `RIWAYAT: ${username}`;
 
-            const canDelete = (userLogin.role === 'admin' || userLogin.username === username);
+    modal.style.display =
+        "block";
 
-            let detailInfo = "";
-            if (item.tipe === 'SHIFT') {
-                detailInfo = `<p class="text-blue-600 font-bold text-[10px] uppercase">📍 Shift ${item.shift}</p>`;
-            } else {
-                const label = item.is_pendamping ? "🤝 Pendamping Setor" : "💰 Setor Bank";
-                const nominal = item.is_pendamping ? "" : `: FEB ${formatRupiah(item.uang_feb)} & MINIBANK ${formatRupiah(item.uang_minibank)}`;
-                detailInfo = `<p class="text-indigo-600 font-bold text-[10px] uppercase">${label}${nominal}</p>`;
+    content.innerHTML =
+        `
+        <p class="
+            text-center
+            text-xs
+            text-slate-400
+            py-10
+        ">
+            Memuat...
+        </p>
+        `;
+
+    async function loadRiwayat(reset = false) {
+
+        try {
+
+            if (reset) {
+
+                offset = 0;
+
+                semuaRiwayat = [];
+
+                masihAdaData = true;
+
             }
 
-            return `
-                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-3 shadow-sm">
-                    <div class="flex gap-3">
-                        <div class="w-16 h-20 bg-slate-200 rounded-lg overflow-hidden border border-white shadow-sm flex-shrink-0 cursor-pointer" onclick="zoomFoto('${item.foto_diri}')">
-                            <img src="${item.foto_diri}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150?text=No+Foto'">
-                        </div>
-                        
-                        <div class="flex-1 flex flex-col justify-between">
-                            <div>
-                                <div class="flex justify-between items-start mb-1">
-                                    ${detailInfo}
-                                    <span class="bg-white px-2 py-0.5 rounded-full text-[8px] font-bold text-slate-500 border border-slate-100">+${item.poin_didapat} PT</span>
-                                </div>
-                                <p class="text-[9px] text-slate-400">${tgl}</p>
-                            </div>
+            if (!masihAdaData)
+                return;
 
-                            <div class="flex justify-between items-center mt-2">
-                                <button onclick="zoomFoto('${item.foto_diri}')" class="text-[9px] text-blue-500 font-bold hover:underline">🔍 LIHAT FOTO</button>
-                                
-                                ${canDelete ? `
-                                    <button onclick='hapusRiwayat(${JSON.stringify(item)}, "${item.target_table}")' 
-                                            class="text-[9px] text-red-500 font-black px-2 py-1 rounded-lg hover:bg-red-50">
-                                        🗑️ HAPUS
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
+            const start =
+                offset;
+
+            const end =
+                offset +
+                LIMIT -
+                1;
+
+            const [
+                {
+                    data: dataAbsen,
+                    error: errA
+                },
+
+                {
+                    data: dataSetor,
+                    error: errS
+                }
+
+            ] =
+            await Promise.all([
+
+                supabaseClient
+                    .from("presensi")
+                    .select(`
+                        id,
+                        username,
+                        created_at,
+                        shift,
+                        foto_diri,
+                        poin_didapat
+                    `)
+                    .eq(
+                        "username",
+                        username
+                    )
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    )
+                    .range(
+                        start,
+                        end
+                    ),
+
+                supabaseClient
+                    .from("setor_bank")
+                    .select(`
+                        id,
+                        username,
+                        created_at,
+                        uang_feb,
+                        uang_minibank,
+                        foto_diri,
+                        poin_didapat,
+                        is_pendamping,
+                        parent_id
+                    `)
+                    .eq(
+                        "username",
+                        username
+                    )
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    )
+                    .range(
+                        start,
+                        end
+                    )
+
+            ]);
+
+            if (errA)
+                throw errA;
+
+            if (errS)
+                throw errS;
+
+            const gabung = [
+
+                ...(dataAbsen || [])
+                .map(
+                    x => ({
+                        ...x,
+                        tipe: "SHIFT",
+                        target_table:
+                            "presensi"
+                    })
+                ),
+
+                ...(dataSetor || [])
+                .map(
+                    x => ({
+                        ...x,
+                        tipe: "SETOR",
+                        target_table:
+                            "setor_bank"
+                    })
+                )
+
+            ]
+            .sort(
+                (
+                    a,
+                    b
+                ) =>
+                    new Date(
+                        b.created_at
+                    )
+                    -
+                    new Date(
+                        a.created_at
+                    )
+            );
+
+            if (
+                gabung.length ===
+                0
+            ) {
+
+                masihAdaData =
+                    false;
+
+            } else {
+
+                semuaRiwayat
+                    .push(
+                        ...gabung
+                    );
+
+                offset +=
+                    LIMIT;
+
+            }
+
+            render();
+
+        }
+
+        catch (err) {
+
+            content.innerHTML =
+                `
+                <div class="
+                    text-red-500
+                    text-center
+                    py-10
+                ">
+                    ${err.message}
                 </div>
-            `;
-        }).join("");
-
-    } catch (err) {
-        console.error(err);
-        content.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded-xl text-center text-xs font-bold">
-            Gagal memuat riwayat: <br> ${err.message}
-        </div>`;
+                `;
+        }
     }
-}
 
+    function render() {
+
+        if (
+            semuaRiwayat.length
+            ===
+            0
+        ) {
+
+            content.innerHTML =
+                `
+                <p class="
+                    text-center
+                    text-slate-400
+                    py-10
+                ">
+                    Belum ada riwayat
+                </p>
+                `;
+
+            return;
+
+        }
+
+        content.innerHTML =
+            semuaRiwayat
+            .map(
+                item => {
+
+                    const tgl =
+                        new Date(
+                            item.created_at
+                        )
+                        .toLocaleString(
+                            "id-ID",
+                            {
+                                dateStyle:
+                                    "medium",
+
+                                timeStyle:
+                                    "short"
+                            }
+                        );
+
+                    const canDelete =
+                        userLogin.role
+                        ===
+                        "admin"
+                        ||
+                        userLogin.username
+                        ===
+                        username;
+
+                    let detail =
+                        "";
+
+                    if (
+                        item.tipe
+                        ===
+                        "SHIFT"
+                    ) {
+
+                        detail =
+                            `
+                            <p class="
+                                text-blue-600
+                                font-bold
+                                text-[10px]
+                            ">
+                                📍 SHIFT
+                                ${item.shift}
+                            </p>
+                            `;
+
+                    }
+
+                    else {
+
+                        detail =
+                            `
+                            <p class="
+                                text-indigo-600
+                                font-bold
+                                text-[10px]
+                            ">
+                            ${
+                                item.is_pendamping
+                                ?
+                                "🤝 PENDAMPING"
+                                :
+                                `💰 FEB ${formatRupiah(item.uang_feb)} • MINI ${formatRupiah(item.uang_minibank)}`
+                            }
+                            </p>
+                            `;
+                    }
+
+                    return `
+
+                    <div class="
+                        bg-slate-50
+                        p-3
+                        rounded-2xl
+                        border
+                        mb-3
+                    ">
+
+                        <div class="
+                            flex
+                            gap-3
+                        ">
+
+                            <img
+                                src="${item.foto_diri || ''}"
+                                onclick="zoomFoto('${item.foto_diri}')"
+                                class="
+                                    w-16
+                                    h-20
+                                    rounded-lg
+                                    object-cover
+                                    cursor-pointer
+                                "
+                            >
+
+                            <div class="flex-1">
+
+                                <div class="
+                                    flex
+                                    justify-between
+                                ">
+
+                                    ${detail}
+
+                                    <span class="
+                                        bg-white
+                                        px-2
+                                        rounded-full
+                                        text-[8px]
+                                        font-bold
+                                    ">
+                                        +${item.poin_didapat}
+                                    </span>
+
+                                </div>
+
+                                <p class="
+                                    text-[9px]
+                                    text-slate-400
+                                ">
+                                    ${tgl}
+                                </p>
+
+                                <div class="
+                                    mt-2
+                                    flex
+                                    justify-between
+                                ">
+
+                                    <button
+                                        onclick="zoomFoto('${item.foto_diri}')"
+                                        class="
+                                            text-blue-500
+                                            text-[9px]
+                                            font-bold
+                                        "
+                                    >
+                                        🔍 FOTO
+                                    </button>
+
+                                    ${
+                                        canDelete
+                                        ?
+                                        `
+                                        <button
+                                            onclick='hapusRiwayat(${JSON.stringify(item)},"${item.target_table}")'
+                                            class="
+                                                text-red-500
+                                                text-[9px]
+                                                font-bold
+                                            "
+                                        >
+                                            🗑️ HAPUS
+                                        </button>
+                                        `
+                                        :
+                                        ""
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    `;
+
+                }
+
+            )
+            .join("");
+
+        if (
+            masihAdaData
+        ) {
+
+            content.innerHTML +=
+                `
+                <button
+                    id="btn-load"
+                    class="
+                        w-full
+                        py-3
+                        rounded-2xl
+                        bg-blue-600
+                        text-white
+                        font-bold
+                    "
+                >
+                    Selengkapnya
+                </button>
+                `;
+
+            document
+                .getElementById(
+                    "btn-load"
+                )
+                .onclick =
+                () =>
+                    loadRiwayat();
+
+        }
+
+    }
+
+    await loadRiwayat(true);
+
+}
 async function lihatRiwayat(uid, name) {
     document.getElementById('modal-title').innerText = "RIWAYAT " + name;
     document.getElementById('modal-riwayat').style.display = "block";
@@ -1333,68 +1701,56 @@ function formatInputRupiah(input) {
     input.value =
         'Rp' + formatted;
 }
+document.addEventListener('DOMContentLoaded', () => {
 
-document.addEventListener(
-    'DOMContentLoaded',
-    () => {
+    // ==========================================
+    // 1. AUTO-FILTER LAPORAN AKHIR SHIFT
+    // ==========================================
+    const filterTglLaporan = document.getElementById('filter_tgl_laporan');
+    const filterShiftLaporan = document.getElementById('filter_shift_laporan');
 
-        const inputFeb =
-            document.getElementById(
-                'setor_uang_feb'
-            );
-
-        const inputMini =
-            document.getElementById(
-                'setor_uang_minibank'
-            );
-
-        if (inputFeb) {
-
-            inputFeb.addEventListener(
-                'input',
-                function () {
-
-                    formatInputRupiah(this);
-                }
-            );
-        }
-
-        if (inputMini) {
-
-            inputMini.addEventListener(
-                'input',
-                function () {
-
-                    formatInputRupiah(this);
-                }
-            );
-        }
+    if (filterTglLaporan) {
+        // Langsung filter data saat user mengubah tanggal
+        filterTglLaporan.addEventListener('change', function () {
+            cariLaporan();
+        });
     }
-);
 
-[
-    'uang_feb',
-    'admin_feb',
-    'uang_minibank',
-    'admin_minibank'
-]
+    if (filterShiftLaporan) {
+        // Langsung filter data saat user mengubah shift
+        filterShiftLaporan.addEventListener('change', function () {
+            cariLaporan();
+        });
+    }
 
-    .forEach(id => {
 
-        const input =
-            document.getElementById(id);
+    // ==========================================
+    // 2. FORMAT RUPIAH OTOMATIS SAAT INPUT
+    // ==========================================
+    
+    // List semua ID input yang harus diformat menjadi Rupiah
+    const inputRupiahIds = [
+        'setor_uang_feb',
+        'setor_uang_minibank',
+        'uang_feb',
+        'admin_feb',
+        'uang_minibank',
+        'admin_minibank'
+    ];
 
+    // Looping semua ID untuk memasang event listener secara efisien
+    inputRupiahIds.forEach(id => {
+        const input = document.getElementById(id);
         if (input) {
-
-            input.addEventListener(
-                'input',
-                function () {
-
-                    formatInputRupiah(this);
-                }
-            );
+            input.addEventListener('input', function () {
+                formatInputRupiah(this);
+            });
         }
     });
+
+});
+
+    
 
 function formatRupiah(angka) {
 
